@@ -20,7 +20,7 @@ int main() {
 
     int seed = 313;
 
-    TString outFileName("pythia-output.root");
+    TString outFileName("output.root");
     TFile *fOut = new TFile(outFileName, "RECREATE");
 
     Pythia pythia;
@@ -89,7 +89,7 @@ int main() {
                     }
 
                     if (bTau0) {
-                        phi = GetAnisotropicPhi(pythia.event.at(moms[i]).phi(),
+                        phi = GetAnisotropicPhi(pythia.event.at(moms[0]).phi(),
                                                 1., 0.001, vn, psi, fPhiDist);
                     }
                 }

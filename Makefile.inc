@@ -1,14 +1,15 @@
 # PYTHIA configuration file.
-# Generated on Tue Feb 4 18:13:45 EET 2020 with the user supplied options:
+# Generated on Wed Feb 5 13:44:27 EET 2020 with the user supplied options:
 # --enable-shared
-# --with-root-lib=/home/heimarry/alice/sw/slc7_x86-64/ROOT/v6-18-04-alice1-1/lib
-# --with-root-include=/home/heimarry/alice/sw/slc7_x86-64/ROOT/v6-18-04-alice1-1/include
+# --with-root-bin=/n/work00/software/alice/sw/slc7_x86-64/ROOT/v6-18-04-37/bin
+# --with-root-lib=/n/work00/software/alice/sw/slc7_x86-64/ROOT/v6-18-04-37/lib
+# --with-root-include=/n/work00/software/alice/sw/slc7_x86-64/ROOT/v6-18-04-37/include
 
 # Install directory prefixes.
-PREFIX_BIN=/home/heimarry/Applications/pythia8243/bin
-PREFIX_INCLUDE=/home/heimarry/Applications/pythia8243/include
-PREFIX_LIB=/home/heimarry/Applications/pythia8243/lib
-PREFIX_SHARE=/home/heimarry/Applications/pythia8243/share/Pythia8
+PREFIX_BIN=/n/work00/heimarry/pythia8244/bin
+PREFIX_INCLUDE=/n/work00/heimarry/pythia8244/include
+PREFIX_LIB=/n/work00/heimarry/pythia8244/lib
+PREFIX_SHARE=/n/work00/heimarry/pythia8244/share/Pythia8
 
 # Compilation flags (see ./configure --help for further documentation).
 ENABLE_SHARED=true
@@ -68,7 +69,7 @@ PROMC_LIB=
 
 # ROOT configuration.
 ROOT_USE=true
-ROOT_BIN=
+ROOT_BIN=/n/work00/software/alice/sw/slc7_x86-64/ROOT/v6-18-04-37/bin
 ROOT_LIBS=
 CXX_ROOT=
 

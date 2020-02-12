@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "Run Pythia8 with Pb ions"
+time=$(date)
+echo "Start time : $time"
+./pythiaHI
+time=$(date)
+echo "End time : $time"
