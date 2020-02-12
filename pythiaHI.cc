@@ -77,12 +77,11 @@ int main() {
 
             if (pythia.event[iPart].isFinal()) {
 
+                // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
                 double phi0 = pythia.event[iPart].phi();
+                double phi = GetAnisotropicPhi(phi0, 1., 0.001, vn, psi, fPhiDist);
 
-                // Change particle angle according to flow.
-                // Check that if the particle is from long-lived unstable
-                // particle.
                 if (moms.size()!=0) {
                     bool bTau0 = 0;
                     for (int i=0; i<moms.size(); i++) {
@@ -90,11 +89,11 @@ int main() {
                     }
 
                     if (bTau0) {
-
+                        phi = GetAnisotropicPhi(pythia.event.at(moms[i]).phi(),
+                                                1., 0.001, vn, psi, fPhiDist);
                     }
                 }
 
-                double phi = GetAnisotropicPhi(phi0, 1., 0.001, vn, psi, fPhiDist);
                 double phiDiff = phi - phi0;
                 pythia.event[iPart].rot(0, phiDiff);
 
@@ -113,8 +112,6 @@ int main() {
 
                 hPhi0->Fill(phi0);
                 hPhi->Fill(phi);
-
-
 
             }
         }
