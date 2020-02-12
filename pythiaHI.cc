@@ -1,4 +1,5 @@
 #include <vector>
+#include <cstring>
 
 #include "Pythia8/Pythia.h"
 #include "Pythia8/HeavyIons.h"
@@ -16,11 +17,17 @@ double GetPhi0(double phi, double *vn, double *psi);
 double AnisotropicPhiDist(double *x, double *p);
 double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, double *psi, TF1 *fPhiDist);
 
-int main() {
+int main(int argc, char *argv[]) {
 
-    int seed = 313;
+    if (argc==1) {
+        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0]" << endl;
+        return 0;
+    }
 
-    TString outFileName("output.root");
+    int nEvents = argc > 1 ? atol(argv[1]) : 100;
+    TString outFileName = argc > 2 ? argv[2] : "output.root";
+    int seed = argc > 3 ? atol(argv[3]) : 0;
+
     TFile *fOut = new TFile(outFileName, "RECREATE");
 
     Pythia pythia;
@@ -52,7 +59,7 @@ int main() {
     TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
 
     // NTuple to save events
-    TNtuple *ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron");
+    TNtuple *ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron:charge");
 
     // Track variables
     Int_t pid = 0;
@@ -61,11 +68,9 @@ int main() {
     bool isHadron = false;
 
     // Loop over events.
-    int nEvents = 10;
     for ( int iEvent = 0; iEvent < nEvents; ++iEvent ) {
 
         if ( !pythia.next() ) continue;
-        cout << "\nEvent " << iEvent + 1 << endl;
 
         for (int j=0; j<5; j++) {
             psi[j] = rand->Uniform(-TMath::Pi(), TMath::Pi());
@@ -77,13 +82,18 @@ int main() {
 
             if (pythia.event[iPart].isFinal()) {
 
+                charge = pythia.event[iPart].charge();
+                if (charge==0) continue;
+
                 // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
                 double phi0 = pythia.event[iPart].phi();
-                double phi = GetAnisotropicPhi(phi0, 1., 0.001, vn, psi, fPhiDist);
 
+                // HUOM: If code freezes, probably bad initial guess
+                double phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
+
+                bool bTau0 = 0;
                 if (moms.size()!=0) {
-                    bool bTau0 = 0;
                     for (int i=0; i<moms.size(); i++) {
                         if (pythia.event.at(moms[i]).tau0()>10.0) bTau0 = 1;
                     }
@@ -105,7 +115,6 @@ int main() {
                 y = pythia.event[iPart].yProd();
                 z = pythia.event[iPart].zProd();
 
-                charge = pythia.event[iPart].charge();
                 isHadron = pythia.event[iPart].isHadron();
 
                 ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
@@ -115,6 +124,9 @@ int main() {
 
             }
         }
+
+        cout << "\nEvent " << iEvent + 1
+             << " done, n=" << pythia.event.size() << endl;
     }
 
     ntuple->Write("", TObject::kOverwrite);
@@ -162,7 +174,7 @@ double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, do
         phiInit = phi;
     }
 
-    if (phi>TMath::Pi())phi -= 2*TMath::Pi();
+    if (phi>TMath::Pi()) phi -= 2*TMath::Pi();
     if (phi<-TMath::Pi()) phi += 2*TMath::Pi();
 
     return phi;

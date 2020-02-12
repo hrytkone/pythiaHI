@@ -2,7 +2,7 @@
 
 if [ "$1" == "-h" ]
 then
-    echo "Usage: `basename $0` comment njobs[=1]"
+    echo "Usage: `basename $0` comment njobs[=1] nevents[=10]"
     exit 0
 fi
 
@@ -19,12 +19,19 @@ else
     njobs=$2
 fi
 
+if [ -z "$3" ]
+then
+    nevents=10
+else
+    nevents=$3
+fi
+
 outputdir=run_${1}
 mkdir $outputdir
 mkdir ${outputdir}/logs
 
 for (( i=1; i<=$njobs; i++ ))
 do
-    sbatch -o ${outputdir}/logs/log$i -e ${outputdir}/logs/errout$i -J pHI -n 1 run
+    sbatch -o ${outputdir}/logs/log$i -e ${outputdir}/logs/errout$i -J pHI -n 1 run $i $nevents
     sleep 1
 done

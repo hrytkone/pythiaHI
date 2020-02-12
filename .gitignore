@@ -1,2 +1,5 @@
 # ROOT files
 *.root
+
+# Makefile.inc
+Makefile.inc

@@ -61,8 +61,8 @@ $(PREFIX_LIB)/libpythia8.a :
 pythiaHI: pythiaHI.cc $(PREFIX_LIB)/libpythia8.a
 ifeq ($(ROOT_USE),true)
 	$(CXX) $< -o $@ $(CXX_COMMON) $(GZIP_INC) $(GZIP_FLAGS) -w -I$(ROOT_INCLUDE) $(CXX_COMMON)\
-	 `$(ROOTBIN)root-config --cflags`\
-	 -Wl,-rpath,$(ROOT_LIB) `$(ROOT_BIN)root-config --glibs`
+	 `root-config --cflags`\
+	 -Wl,-rpath,$(ROOT_LIB) `root-config --glibs`
 else
 	@echo "Error: $@ requires ROOT"
 endif
