@@ -107,6 +107,8 @@ int main(int argc, char *argv[]) {
                 double phiDiff = phi - phi0;
                 pythia.event[iPart].rot(0, phiDiff);
 
+                pid = pythia.event[iPart].id();
+
                 px = pythia.event[iPart].px();
                 py = pythia.event[iPart].py();
                 pz = pythia.event[iPart].pz();
@@ -116,6 +118,8 @@ int main(int argc, char *argv[]) {
                 z = pythia.event[iPart].zProd();
 
                 isHadron = pythia.event[iPart].isHadron();
+
+                cout << "id : " << pid << endl;
 
                 ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
 
