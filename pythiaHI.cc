@@ -16,6 +16,7 @@ using namespace Pythia8;
 double GetPhi0(double phi, double *vn, double *psi);
 double AnisotropicPhiDist(double *x, double *p);
 double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, double *psi, TF1 *fPhiDist);
+double BisectionMethod(double phi0, double err, double *vn, double *psi, TF1 *fPhiDist);
 
 int main(int argc, char *argv[]) {
 
@@ -89,7 +90,6 @@ int main(int argc, char *argv[]) {
                 moms = pythia.event[iPart].motherList();
                 double phi0 = pythia.event[iPart].phi();
 
-                // HUOM: If code freezes, probably bad initial guess
                 double phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
 
                 bool bTau0 = 0;
@@ -118,8 +118,6 @@ int main(int argc, char *argv[]) {
                 z = pythia.event[iPart].zProd();
 
                 isHadron = pythia.event[iPart].isHadron();
-
-                cout << "id : " << pid << endl;
 
                 ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
 
@@ -173,13 +171,40 @@ double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, do
     double phi = 0;
     fPhiDist->SetParameters(phi0, vn[0], vn[1], vn[2], vn[3], vn[4], psi[0], psi[1], psi[2], psi[3], psi[4]);
 
+    int step = 0;
     while (TMath::Abs(GetPhi0(phi, vn, psi) - phi0) > err) {
         phi = phiInit - fPhiDist->Eval(phiInit)/fPhiDist->Derivative(phiInit);
         phiInit = phi;
+
+        step++;
+
+        if (step==100) {
+            cout << "Newton not converging, switch to bisection method" << endl;
+            phi = BisectionMethod(phi0, err, vn, psi, fPhiDist);
+            break;
+        }
     }
 
     if (phi>TMath::Pi()) phi -= 2*TMath::Pi();
     if (phi<-TMath::Pi()) phi += 2*TMath::Pi();
 
     return phi;
+}
+
+double BisectionMethod(double phi0, double err, double *vn, double *psi, TF1 *fPhiDist) {
+
+    fPhiDist->SetParameters(phi0, vn[0], vn[1], vn[2], vn[3], vn[4], psi[0], psi[1], psi[2], psi[3], psi[4]);
+    double a = -TMath::Pi(), b = TMath::Pi(), c = 0;
+    while (TMath::Abs(b-a) > err) {
+        c = (a+b)/2.0;
+        if (fPhiDist->Eval(c) < 0) {
+            a = c;
+        } else if (fPhiDist->Eval(c) > 0) {
+            b = c;
+        } else {
+            break;
+        }
+    }
+
+    return c;
 }
