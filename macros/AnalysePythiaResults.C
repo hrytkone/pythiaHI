@@ -57,7 +57,13 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
 
     Int_t previd = 0, nevents = 0;
     Int_t nentries = (Int_t)ntuple->GetEntries();
+
+    int noutput = nentries/20;
+    if (noutput<1) noutput = 1;
     for ( Int_t i=0; i<nentries; i++ ) {
+        if (i % noutput == 0)
+            cout << 100*i/nentries << " % finished" << endl;
+
         Int_t entry = ntuple->GetEntry(i);
         if (eventid!=previd) {
             previd = eventid;

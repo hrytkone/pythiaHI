@@ -52,12 +52,19 @@ int main(int argc, char *argv[]) {
 
     // Flow related stuff
     double vn[5] = {0., 0.15, 0.08, 0.03, 0.01};
+
+    cout << "vn : [ ";
+    for (int i=0; i<5; i++) {
+        cout << vn[i] << " ";
+        if (i==4) cout << "]\n";
+    }
+
     double psi[5] = {TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi()};
     TRandom3 *rand = new TRandom3(seed);
     TF1 *fPhiDist = new TF1("fPhiDist", AnisotropicPhiDist, -TMath::Pi(), TMath::Pi(), 11);
 
-    TH1D *hPhi0 = new TH1D("hPhi0", "hPhi0", 100, -TMath::Pi(), TMath::Pi());
-    TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
+    //TH1D *hPhi0 = new TH1D("hPhi0", "hPhi0", 100, -TMath::Pi(), TMath::Pi());
+    //TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
 
     // NTuple to save events
     TNtuple *ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron:charge");
@@ -121,8 +128,8 @@ int main(int argc, char *argv[]) {
 
                 ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
 
-                hPhi0->Fill(phi0);
-                hPhi->Fill(phi);
+                //hPhi0->Fill(phi0);
+                //hPhi->Fill(phi);
 
             }
         }
@@ -132,8 +139,8 @@ int main(int argc, char *argv[]) {
     }
 
     ntuple->Write("", TObject::kOverwrite);
-    hPhi0->Write("hPhi0");
-    hPhi->Write("hPhi");
+    //hPhi0->Write("hPhi0");
+    //hPhi->Write("hPhi");
     fOut->Close();
 
     pythia.stat();
