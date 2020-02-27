@@ -3,6 +3,7 @@
 
 #include "Pythia8/Pythia.h"
 #include "Pythia8/HeavyIons.h"
+#include "Pythia8/HIUserHooks.h"
 
 #include "TFile.h"
 #include "TMath.h"
@@ -21,13 +22,14 @@ double BisectionMethod(double phi0, double err, double *vn, double *psi, TF1 *fP
 int main(int argc, char *argv[]) {
 
     if (argc==1) {
-        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0]" << endl;
+        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0] 'save impact parameter'[=0]" << endl;
         return 0;
     }
 
     int nEvents = argc > 1 ? atol(argv[1]) : 100;
     TString outFileName = argc > 2 ? argv[2] : "output.root";
     int seed = argc > 3 ? atol(argv[3]) : 0;
+    bool bSaveb = argc > 4 ? atol(argv[3]) : 0;
 
     TFile *fOut = new TFile(outFileName, "RECREATE");
 
@@ -67,7 +69,12 @@ int main(int argc, char *argv[]) {
     //TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
 
     // NTuple to save events
-    TNtuple *ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron:charge");
+    TNtuple *ntuple;
+    if (bSaveb) {
+        ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron:charge:b");
+    } else {
+        ntuple = new TNtuple("pythiaEvents", "data from Pythia8 with afterburner", "eventId:particleId:px:py:pz:x:y:z:isHadron:charge");
+    }
 
     // Track variables
     Int_t pid = 0;
@@ -126,7 +133,12 @@ int main(int argc, char *argv[]) {
 
                 isHadron = pythia.event[iPart].isHadron();
 
-                ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
+                double b = pythia.info.hiinfo->b();
+                if (bSaveb) {
+                    ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge, b);
+                } else {
+                    ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
+                }
 
                 //hPhi0->Fill(phi0);
                 //hPhi->Fill(phi);
@@ -136,6 +148,8 @@ int main(int argc, char *argv[]) {
 
         cout << "\nEvent " << iEvent + 1
              << " done, n=" << pythia.event.size() << endl;
+        cout << "Impact parameter : " << pythia.info.hiinfo->b() << endl;
+
     }
 
     ntuple->Write("", TObject::kOverwrite);
