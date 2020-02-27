@@ -33,6 +33,19 @@ void CentralityPlot(const char* inputFile = "o2sim.root") {
         hCharge->Fill((double)hitList[i]/(double)maxVal);
     }
 
+    TF1 *fNBD = new TF1("fNBD", "([0]*TMath::Gamma(x+[1])/(TMath::Gamma(x+1)*TMath::Gamma([1])))*(TMath::Power([2]/[1], x)/TMath::Power([2]/[1] + 1, x + [1]))", 0.1, 1.5);
+    fNBD->SetParameter(0, 1.0);
+    fNBD->SetParameter(1, 1.0);
+    fNBD->SetParameter(2, 1.0);
+
+    TF1 *fNBD2 = new TF1("fNBD2","[2]*ROOT::Math::negative_binomial_pdf(x,[0],[1])", 0.0, 1.0);
+    fNBD2->SetParameter(0, 1.0);
+    fNBD2->SetParameter(1, 1.0);
+    fNBD2->SetParameter(2, 1.0);
+
+    hCharge->Fit("fNBD2", "R");
+
     TCanvas *c1 = new TCanvas("c1", "c1");
-    hCharge->Draw();
+    //hCharge->Draw();
+    fNBD2->Draw();
 }

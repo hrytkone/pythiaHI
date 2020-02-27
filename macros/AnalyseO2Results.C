@@ -1,10 +1,16 @@
 #include <boost/math/special_functions/bessel.hpp>
 
+#include "DataFormatsFV0/Hit.h"
+#include "DataFormatsFT0/HitType.h"
+#include "FT0Base/Geometry.h"
+
 #define N 5
 
 double GetPhi(double x, double y);
+double GetFV0Phi(int chID);
 void CalculateQvector(TComplex &Qvec, double &norm, int n, double phi, double pt, bool bUseWeight);
 double GetEventPlane(TComplex Qvec, int n);
+double CalculateResolution(double sumAB, double sumAC, double sumBC);
 double CalculateVnobs(vector<double> phiList, TComplex &Qvec, int n);
 double GetVnObs(TComplex Qvec, double phi, int n);
 
@@ -13,33 +19,23 @@ double func(double *x, double *p);
 double RIter(double x0, double R0, double err);
 double CalculateRerror(double khi, double khiErr);
 
-void AnalysePythiaResults(const char* inputFile = "pythia.root") {
+
+void AnalyseO2Results(const char* inputFile = "o2sim.root") {
     TString inFileName(inputFile);
     TFile *fIn = new TFile(inFileName, "read");
 
-    TString outFileName("analysisdata.root");
+    TString outFileName("o2analysisdata.root");
     TFile *fOut = new TFile(outFileName, "recreate");
 
-    TNtuple *ntuple;
-    fIn->GetObject("pythiaEvents", ntuple);
+    TTree *tree = (TTree*)fIn->Get("o2sim");
 
-    // Event variables
-    Float_t eventid = 0;
+    vector<o2::ft0::HitType>* hitArrFT0 = nullptr;
+    tree->SetBranchAddress("FT0Hit", &hitArrFT0);
+    TLeaf* ft0ChID = tree->GetLeaf("FT0Hit.mDetectorID");
 
-    // Track variables
-    Float_t particleid = 0;
-    Float_t charge = 0;
-    Float_t px = 0.0, py = 0.0, pz = 0.0, x = 0.0, y = 0.0, z = 0.0;
-
-    ntuple->SetBranchAddress("particleId",&particleid);
-    ntuple->SetBranchAddress("eventId",&eventid);
-    ntuple->SetBranchAddress("charge",&charge);
-    ntuple->SetBranchAddress("px",&px);
-    ntuple->SetBranchAddress("py",&py);
-    ntuple->SetBranchAddress("pz",&pz);
-    ntuple->SetBranchAddress("x",&x);
-    ntuple->SetBranchAddress("y",&y);
-    ntuple->SetBranchAddress("z",&z);
+    vector<o2::fv0::Hit>* hitArrFV0 = nullptr;
+    tree->SetBranchAddress("FV0Hit", &hitArrFV0);
+    TLeaf* fv0ChID = tree->GetLeaf("FV0Hit.mDetectorID");
 
     TH1D *hVobs[N];
     TH1D *hRsub[N];
@@ -54,62 +50,54 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
     vector<double> phiList;
 
     double vobs = 0.0, epA = 0.0, epB = 0.0, rsub = 0.0;
+    int n = 0;
 
-    Int_t previd = 0, nevents = 0;
-    Int_t nentries = (Int_t)ntuple->GetEntries();
+    Int_t nentries = (Int_t)tree->GetEntries();
 
     int noutput = nentries/20;
     if (noutput<1) noutput = 1;
     for ( Int_t i=0; i<nentries; i++ ) {
-        if (i % noutput == 0)
+        if ( i % noutput == 0 )
             cout << 100*(double)i/(double)nentries << " % finished" << endl;
 
-        Int_t entry = ntuple->GetEntry(i);
-        if (eventid!=previd) {
-            previd = eventid;
+        Int_t entry = tree->GetEntry(i);
 
-            for (Int_t j=0; j<N; j++) {
-                vobs = CalculateVnobs(phiList, Qvec[j], j+1);
-                vobs /= phiList.size();
-                hVobs[j]->Fill(vobs);
+        Int_t arrSize = hitArrFV0->size();
+        for ( Int_t j=0; j<N; j++ ) {
+            n = j+1;
 
-                epA = GetEventPlane(QvecA[j], j+1);
-                epB = GetEventPlane(QvecB[j], j+1);
-                rsub = TMath::Cos((j+1)*(epA - epB));
-                hRsub[j]->Fill(rsub);
+            for ( Int_t k=0; k<arrSize; k++ ) {
 
-                norm[j] = 0; normA[j] = 0; normB[j] = 0;
-                Qvec[j] = TComplex(0, 0); QvecA[j] = TComplex(0, 0); QvecB[j] = TComplex(0, 0);
+                const auto& fv0Hit = (*hitArrFV0)[k];
+                double phi = GetFV0Phi(fv0ChID->GetValue(k));
+                phiList.push_back(phi);
+
+                CalculateQvector(Qvec[j], norm[j], j+1, phi, 0, 0);
+                if ( i%2 ) {
+                    CalculateQvector(QvecA[j], normA[j], j+1, phi, 0, 0);
+                } else {
+                    CalculateQvector(QvecB[j], normB[j], j+1, phi, 0, 0);
+                }
             }
+
+            vobs = CalculateVnobs(phiList, Qvec[j], j+1);
+            vobs /= phiList.size();
+            hVobs[j]->Fill(vobs);
+
+            epA = GetEventPlane(QvecA[j], j+1);
+            epB = GetEventPlane(QvecB[j], j+1);
+            rsub = TMath::Cos((j+1)*(epA - epB));
+            hRsub[j]->Fill(rsub);
+
+            norm[j] = 0; normA[j] = 0; normB[j] = 0;
+            Qvec[j] = TComplex(0, 0); QvecA[j] = TComplex(0, 0); QvecB[j] = TComplex(0, 0);
 
             phiList.clear();
-        }
 
-        double phi = GetPhi(px, py);
-        phiList.push_back(phi);
-
-        for (Int_t j=0; j<N; j++) {
-            CalculateQvector(Qvec[j], norm[j], j+1, phi, 0, 0);
-            if (i%2) {
-                CalculateQvector(QvecA[j], normA[j], j+1, phi, 0, 0);
-            } else {
-                CalculateQvector(QvecB[j], normB[j], j+1, phi, 0, 0);
-            }
         }
     }
 
-    for (Int_t j=0; j<N; j++) {
-        vobs = CalculateVnobs(phiList, Qvec[j], j+1);
-        vobs /= phiList.size();
-        hVobs[j]->Fill(vobs);
-
-        epA = GetEventPlane(QvecA[j], j+1);
-        epB = GetEventPlane(QvecB[j], j+1);
-        rsub = TMath::Cos((j+1)*(epA - epB));
-        hRsub[j]->Fill(rsub);
-    }
-
-    for (Int_t i=0; i<N; i++) {
+    for ( Int_t i=0; i<N; i++ ) {
 
         double rinit = TMath::Sqrt(hRsub[i]->GetMean());
         double khi = RIter(0.5, rinit, 0.0001);
@@ -129,6 +117,10 @@ double GetPhi(double x, double y) {
     return TMath::ATan2(y, x);
 }
 
+double GetFV0Phi(int chID) {
+    return TMath::Pi()/8.0 + (chID%8)*TMath::Pi()/4.0;
+}
+
 void CalculateQvector(TComplex &Qvec, double &norm, int n, double phi, double pt, bool bUseWeight) {
 
     double w = 1.0;
@@ -140,6 +132,10 @@ void CalculateQvector(TComplex &Qvec, double &norm, int n, double phi, double pt
 
 double GetEventPlane(TComplex Qvec, int n) {
     return TMath::ATan2(Qvec.Im(), Qvec.Re())/n;
+}
+
+double CalculateResolution(double sumAB, double sumAC, double sumBC) {
+    return TMath::Sqrt((sumAB*sumAC)/sumBC);
 }
 
 double CalculateVnobs(vector<double> phiList, TComplex &Qvec, int n) {

@@ -2,6 +2,7 @@
 
 #define N 5
 
+double GetEta(double px, double py, double pz);
 double GetPhi(double x, double y);
 void CalculateQvector(TComplex &Qvec, double &norm, int n, double phi, double pt, bool bUseWeight);
 double GetEventPlane(TComplex Qvec, int n);
@@ -13,7 +14,7 @@ double func(double *x, double *p);
 double RIter(double x0, double R0, double err);
 double CalculateRerror(double khi, double khiErr);
 
-void AnalysePythiaResults(const char* inputFile = "pythia.root") {
+void AnalysePythiaResultsDet(const char* inputFile = "pythia.root") {
     TString inFileName(inputFile);
     TFile *fIn = new TFile(inFileName, "read");
 
@@ -61,6 +62,7 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
     int noutput = nentries/20;
     if (noutput<1) noutput = 1;
     for ( Int_t i=0; i<nentries; i++ ) {
+    //for ( Int_t i=0; i<10; i++ ) {
         if (i % noutput == 0)
             cout << 100*(double)i/(double)nentries << " % finished" << endl;
 
@@ -76,6 +78,7 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
                 epA = GetEventPlane(QvecA[j], j+1);
                 epB = GetEventPlane(QvecB[j], j+1);
                 rsub = TMath::Cos((j+1)*(epA - epB));
+
                 hRsub[j]->Fill(rsub);
 
                 norm[j] = 0; normA[j] = 0; normB[j] = 0;
@@ -86,13 +89,17 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
         }
 
         double phi = GetPhi(px, py);
-        phiList.push_back(phi);
+        double eta = GetEta(px, py, pz);
 
         for (Int_t j=0; j<N; j++) {
-            CalculateQvector(Qvec[j], norm[j], j+1, phi, 0, 0);
-            if (i%2) {
+            if ((eta > 2.2) && (eta < 5.06)) {
+                CalculateQvector(Qvec[j], norm[j], j+1, phi, 0, 0);
+                phiList.push_back(phi);
+            }
+            if ((eta > 3.8) && (eta < 5.4)) {
                 CalculateQvector(QvecA[j], normA[j], j+1, phi, 0, 0);
-            } else {
+            }
+            if ((eta > -3.3) && (eta < -2.2)) {
                 CalculateQvector(QvecB[j], normB[j], j+1, phi, 0, 0);
             }
         }
@@ -124,6 +131,11 @@ void AnalysePythiaResults(const char* inputFile = "pythia.root") {
 }
 
 //______________________________________________________________________________
+double GetEta(double px, double py, double pz) {
+    double p = TMath::Sqrt(px*px + py*py + pz*pz);
+    return TMath::ATanH(pz/p);
+}
+
 
 double GetPhi(double x, double y) {
     return TMath::ATan2(y, x);
