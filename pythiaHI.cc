@@ -18,11 +18,15 @@ double GetPhi0(double phi, double *vn, double *psi);
 double AnisotropicPhiDist(double *x, double *p);
 double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, double *psi, TF1 *fPhiDist);
 double BisectionMethod(double phi0, double err, double *vn, double *psi, TF1 *fPhiDist);
+int GetCentralityBin(double b);
+
+#define NCENTBINS 10
+#define NCOEF 5
 
 int main(int argc, char *argv[]) {
 
     if (argc==1) {
-        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0] 'save impact parameter'[=0]" << endl;
+        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0] 'save impact parameter'[=0] 'use centrality dependent vn'[=0]" << endl;
         return 0;
     }
 
@@ -30,6 +34,7 @@ int main(int argc, char *argv[]) {
     TString outFileName = argc > 2 ? argv[2] : "output.root";
     int seed = argc > 3 ? atol(argv[3]) : 0;
     bool bSaveb = argc > 4 ? atol(argv[3]) : 0;
+    bool bCentDep = argc > 5 ? atol(argv[5]) : 0;
 
     TFile *fOut = new TFile(outFileName, "RECREATE");
 
@@ -53,13 +58,26 @@ int main(int argc, char *argv[]) {
     std::vector<int> moms;
 
     // Flow related stuff
-    double vn[5] = {0., 0.15, 0.08, 0.03, 0.01};
 
-    cout << "vn : [ ";
-    for (int i=0; i<5; i++) {
-        cout << vn[i] << " ";
-        if (i==4) cout << "]\n";
+    double vn[NCOEF] = {0., 0.15, 0.08, 0.03, 0.01};
+
+    if (bCentDep==0) {
+        cout << "vn : [ ";
+        for (int i=0; i<NCOEF; i++) {
+            cout << vn[i] << " ";
+            if (i==NCOEF-1) cout << "]\n";
+        }
     }
+
+    // Data from arXiv:1804.02944 (10.17182/hepdata.83737)
+    // These are just rough estimates
+    double centvn[NCOEF][NCENTBINS] = {
+        {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+        {0.035, 0.063, 0.082, 0.093, 0.097, 0.095, 0.086, 0.073, 0.060, 0.050},
+        {0.021, 0.026, 0.028, 0.029, 0.029, 0.027, 0.022, 0.020, 0.018, 0.015},
+        {0.010, 0.012, 0.013, 0.014, 0.015, 0.015, 0.014, 0.013, 0.012, 0.010},
+        {0.0045, 0.0053, 0.0062, 0.0070, 0.0070, 0.0065, 0.0060, 0.0055, 0.0050, 0.0040}
+    };
 
     double psi[5] = {TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi()};
     TRandom3 *rand = new TRandom3(seed);
@@ -92,6 +110,17 @@ int main(int argc, char *argv[]) {
         }
 
         //pythia.event.list();
+
+        double b = pythia.info.hiinfo->b();
+
+        int ibin = 0;
+        if (bCentDep) {
+            ibin = GetCentralityBin(b);
+            if (ibin==-1) ibin = NCENTBINS-1;
+            for (int i=0; i<NCOEF; i++) {
+                vn[i] = centvn[i][ibin];
+            }
+        }
 
         for (int iPart = 0; iPart < pythia.event.size(); iPart++) {
 
@@ -133,7 +162,6 @@ int main(int argc, char *argv[]) {
 
                 isHadron = pythia.event[iPart].isHadron();
 
-                double b = pythia.info.hiinfo->b();
                 if (bSaveb) {
                     ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge, b);
                 } else {
@@ -149,6 +177,11 @@ int main(int argc, char *argv[]) {
         cout << "\nEvent " << iEvent + 1
              << " done, n=" << pythia.event.size() << endl;
         cout << "Impact parameter : " << pythia.info.hiinfo->b() << endl;
+        cout << "vn : [ ";
+        for (int i=0; i<NCOEF; i++) {
+            cout << vn[i] << " ";
+        }
+        cout << "]\n";
 
     }
 
@@ -228,4 +261,15 @@ double BisectionMethod(double phi0, double err, double *vn, double *psi, TF1 *fP
     }
 
     return c;
+}
+
+int GetCentralityBin(double b) {
+    double bins[NCENTBINS+1] = {0.0, 4.94, 6.98, 8.55, 9.88, 11.04, 12.09,
+                                13.05, 13.97, 14.96, 20.0};
+
+    for (int i=0; i<NCENTBINS-1; i++) {
+        if ((b>bins[i-1]) && (b<=bins[i])) return i;
+    }
+
+    return -1;
 }

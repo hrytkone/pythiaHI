@@ -26,12 +26,11 @@ else
     nevents=$3
 fi
 
-outputdir=run_${1}
-mkdir $outputdir
-mkdir ${outputdir}/logs
-
 for (( i=1; i<=$njobs; i++ ))
 do
-    sbatch -o ${outputdir}/logs/log$i -e ${outputdir}/logs/errout$i -J pHI -n 1 run $i $nevents
+    outputdir=run_${1}_job$i
+    mkdir $outputdir
+    mkdir ${outputdir}/logs
+    sbatch -o ${outputdir}/logs/log$i -e ${outputdir}/logs/errout$i -J pHI -n 1 run $i $nevents $outputdir
     sleep 1
 done

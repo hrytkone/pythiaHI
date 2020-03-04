@@ -3,6 +3,11 @@
 echo "Run Pythia8 with Pb ions"
 time=$(date)
 echo "Start time : $time"
-./pythiaHI ${2}
+
+seed=1000
+jobid=$SLURM_JOB_ID
+seed=$((seed+jobid))
+
+./pythiaHI ${2} "${3}/output.root" $seed
 time=$(date)
 echo "End time : $time"
