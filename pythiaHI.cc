@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
     pythia.init();
 
     std::vector<int> moms;
+    std::vector<int> daughters;
 
     // Flow related stuff
 
@@ -128,6 +129,11 @@ int main(int argc, char *argv[]) {
 
                 charge = pythia.event[iPart].charge();
                 if (charge==0) continue;
+
+                px = pythia.event[iPart].px();
+                py = pythia.event[iPart].py();
+                double pT = TMath::Sqrt(px*px + py*py);
+                if (pT<0.5) continue;
 
                 // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
