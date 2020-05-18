@@ -26,7 +26,7 @@ int GetCentralityBin(double b);
 int main(int argc, char *argv[]) {
 
     if (argc==1) {
-        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0] 'save impact parameter'[=0] 'use centrality dependent vn'[=0]" << endl;
+        cout << "Usage : ./pythiaHI 'number of events'[=100] 'output file name'[=output.root] 'seed'[=0] 'save impact parameter'[=0] 'use centrality dependent vn'[=0] 'give bMin'[=0] 'give bMax'[=20.0]" << endl;
         return 0;
     }
 
@@ -35,6 +35,8 @@ int main(int argc, char *argv[]) {
     int seed = argc > 3 ? atol(argv[3]) : 0;
     bool bSaveb = argc > 4 ? atol(argv[3]) : 0;
     bool bCentDep = argc > 5 ? atol(argv[5]) : 0;
+    double bMin = argc > 6 ? atof(argv[6]) : 0.0;
+    double bMax = argc > 7 ? atof(argv[7]) : 20.0;
 
     TFile *fOut = new TFile(outFileName, "RECREATE");
 
@@ -86,6 +88,7 @@ int main(int argc, char *argv[]) {
 
     //TH1D *hPhi0 = new TH1D("hPhi0", "hPhi0", 100, -TMath::Pi(), TMath::Pi());
     //TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
+    TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 100, -TMath::Pi(), TMath::Pi());
 
     // NTuple to save events
     TNtuple *ntuple;
@@ -114,6 +117,11 @@ int main(int argc, char *argv[]) {
 
         double b = pythia.info.hiinfo->b();
 
+	if (b<bMin || b>bMax) {
+            iEvent--;
+            continue;
+	}	
+
         int ibin = 0;
         if (bCentDep) {
             ibin = GetCentralityBin(b);
@@ -133,7 +141,7 @@ int main(int argc, char *argv[]) {
                 px = pythia.event[iPart].px();
                 py = pythia.event[iPart].py();
                 double pT = TMath::Sqrt(px*px + py*py);
-                if (pT<0.5) continue;
+                if (pT<0.2) continue;
 
                 // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
@@ -153,7 +161,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
-                double phiDiff = phi - phi0;
+                double phiDiff = phi - pythia.event.at(moms[0]).phi();
                 pythia.event[iPart].rot(0, phiDiff);
 
                 pid = pythia.event[iPart].id();
@@ -176,6 +184,7 @@ int main(int argc, char *argv[]) {
 
                 //hPhi0->Fill(phi0);
                 //hPhi->Fill(phi);
+                hPhiDiff->Fill(phiDiff);
 
             }
         }
@@ -194,6 +203,7 @@ int main(int argc, char *argv[]) {
     ntuple->Write("", TObject::kOverwrite);
     //hPhi0->Write("hPhi0");
     //hPhi->Write("hPhi");
+    hPhiDiff->Write("hPhiDiff");
     fOut->Close();
 
     pythia.stat();

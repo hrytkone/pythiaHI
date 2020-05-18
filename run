@@ -8,6 +8,6 @@ seed=1000
 jobid=$SLURM_JOB_ID
 seed=$((seed+jobid))
 
-./pythiaHI ${2} "${3}/output.root" $seed
+./pythiaHI ${2} "${3}/output_${1}_n${2}.root" $seed 1 1 "9.88" "11.04"
 time=$(date)
 echo "End time : $time"

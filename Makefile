@@ -61,17 +61,12 @@ $(PREFIX_LIB)/libpythia8.a :
 pythiaHI: pythiaHI.cc $(PREFIX_LIB)/libpythia8.a
 ifeq ($(ROOT_USE),true)
 	$(CXX) $< -o $@ $(CXX_COMMON) $(GZIP_INC) $(GZIP_FLAGS) -w -I$(ROOT_INCLUDE) $(CXX_COMMON)\
-	 `root-config --cflags`\
-	 -Wl,-rpath,$(ROOT_LIB) `root-config --glibs`
+	 `${ROOT_BIN}/root-config --cflags`\
+	 -Wl,-rpath,$(ROOT_LIB) `${ROOT_BIN}/root-config --glibs`
 else
 	@echo "Error: $@ requires ROOT"
 endif
 
 # Clean.
 clean:
-	@rm -f main[0-9][0-9]; rm -f out[0-9][0-9];\
-	rm -f main[0-9][0-9][0-9]; rm -f out[0-9][0-9][0-9];\
-	rm -f mymain[0-9][0-9]; rm -f myout[0-9][0-9];\
-	rm -f test[0-9][0-9][0-9]; rm -f *.dat;\
-	rm -f weakbosons.lhe; rm -f Pythia8.promc; rm -f hist.root;\
-	rm -f *~; rm -f \#*; rm -f core*; rm -f *Dct.*; rm -f *.so;
+	@rm -f pythiaHI;\
