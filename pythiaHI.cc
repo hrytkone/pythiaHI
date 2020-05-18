@@ -117,10 +117,10 @@ int main(int argc, char *argv[]) {
 
         double b = pythia.info.hiinfo->b();
 
-	if (b<bMin || b>bMax) {
+	    if (b<bMin || b>bMax) {
             iEvent--;
             continue;
-	}	
+	    }
 
         int ibin = 0;
         if (bCentDep) {
@@ -138,27 +138,15 @@ int main(int argc, char *argv[]) {
                 charge = pythia.event[iPart].charge();
                 if (charge==0) continue;
 
-                px = pythia.event[iPart].px();
-                py = pythia.event[iPart].py();
-                double pT = TMath::Sqrt(px*px + py*py);
-                if (pT<0.2) continue;
-
                 // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
                 double phi0 = pythia.event[iPart].phi();
 
                 double phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
 
-                bool bTau0 = 0;
-                if (moms.size()!=0) {
-                    for (int i=0; i<moms.size(); i++) {
-                        if (pythia.event.at(moms[i]).tau0()>10.0) bTau0 = 1;
-                    }
-
-                    if (bTau0) {
-                        phi = GetAnisotropicPhi(pythia.event.at(moms[0]).phi(),
-                                                1., 0.001, vn, psi, fPhiDist);
-                    }
+                if (moms.size()!=0 && pythia.event[iPart].mother2()==0) { // Check if there are mothers and mother is decaying particle
+                    phi = GetAnisotropicPhi(pythia.event.at(moms[0]).phi(),
+                                            1., 0.001, vn, psi, fPhiDist);
                 }
 
                 double phiDiff = phi - pythia.event.at(moms[0]).phi();
