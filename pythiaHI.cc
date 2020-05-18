@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     //TH1D *hPhi0 = new TH1D("hPhi0", "hPhi0", 100, -TMath::Pi(), TMath::Pi());
     //TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
-    TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 100, -TMath::Pi(), TMath::Pi());
+    TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 200, -TMath::Pi()/2.0, TMath::Pi()/2.0);
 
     // NTuple to save events
     TNtuple *ntuple;
@@ -140,14 +140,13 @@ int main(int argc, char *argv[]) {
 
                 // Change particle angle according to flow
                 moms = pythia.event[iPart].motherList();
-                double phi0 = pythia.event[iPart].phi();
 
+                double phi0 = pythia.event[iPart].phi();
                 double phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
 
                 if (moms.size()!=0 && pythia.event[iPart].mother2()==0) { // Check if there are mothers and mother is decaying particle
-                    phi = GetAnisotropicPhi(pythia.event.at(moms[0]).phi(),
-                                            1., 0.001, vn, psi, fPhiDist);
                     phi0 = pythia.event.at(moms[0]).phi();
+                    phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
                 }
 
                 double phiDiff = phi - phi0;
@@ -244,8 +243,8 @@ double GetAnisotropicPhi(double phi0, double phiInit, double err, double *vn, do
         }
     }
 
-    if (phi>TMath::Pi()) phi -= 2*TMath::Pi();
-    if (phi<-TMath::Pi()) phi += 2*TMath::Pi();
+    if (phi>TMath::Pi()) { phi -= 2*TMath::Pi(); }
+    else if (phi<-TMath::Pi()) { phi += 2*TMath::Pi(); }
 
     return phi;
 }
