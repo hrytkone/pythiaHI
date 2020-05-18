@@ -147,9 +147,10 @@ int main(int argc, char *argv[]) {
                 if (moms.size()!=0 && pythia.event[iPart].mother2()==0) { // Check if there are mothers and mother is decaying particle
                     phi = GetAnisotropicPhi(pythia.event.at(moms[0]).phi(),
                                             1., 0.001, vn, psi, fPhiDist);
+                    phi0 = pythia.event.at(moms[0]).phi();
                 }
 
-                double phiDiff = phi - pythia.event.at(moms[0]).phi();
+                double phiDiff = phi - phi0;
                 pythia.event[iPart].rot(0, phiDiff);
 
                 pid = pythia.event[iPart].id();
