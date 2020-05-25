@@ -47,22 +47,28 @@ int main(int argc, char *argv[]) {
     pythia.readString(Form("Random:seed = %d", seed));
     pythia.readString("Beams:idA = 1000822080");
     pythia.readString("Beams:idB = 1000822080"); // The lead ion.
-    pythia.readString("Beams:eCM = 2760.0");
-    pythia.readString("Beams:frameType = 1");
-    pythia.readString("HeavyIon:SigFitErr = 0.02,0.02,0.1,0.05,0.05,0.0,0.1,0.0");
-    pythia.readString("HeavyIon:SigFitDefPar = 17.24,2.15,0.33,0.0,0.0,0.0,0.0,0.0");
-    pythia.readString("HeavyIon:SigFitNGen = 20");
     //pythia.readString("ParticleDecays:limitTau0 = On");
-    //pythia.readString("ParticleDecays:tau0Max = 10.0");
-    pythia.readString("HeavyIon:bWidth = 0.0");
+    //pythia.readString("ParticleDecays:tau0Max = 1.0");
+
+    // Settings 1
+    //pythia.readString("Beams:eCM = 2760.0");
+    //pythia.readString("HeavyIon:SigFitErr = 0.02,0.02,0.1,0.05,0.05,0.0,0.1,0.0");
+    //pythia.readString("HeavyIon:SigFitDefPar = 17.24,2.15,0.33,0.0,0.0,0.0,0.0,0.0");
+    //pythia.readString("HeavyIon:SigFitNGen = 20");
+
+    // Settings 2
+    pythia.readString("Beams:eCM = 5520.0");
+    pythia.readString("HeavyIon:SigFitNGen 0");
+    pythia.readString("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0");
+
     pythia.init();
 
     std::vector<int> moms;
-    std::vector<int> daughters;
 
     // Flow related stuff
 
-    double vn[NCOEF] = {0., 0.15, 0.08, 0.03, 0.01};
+    //double vn[NCOEF] = {0., 0.15, 0.08, 0.03, 0.01};
+    double vn[NCOEF] = {0., 0.1, 0.0, 0.0, 0.0};
 
     if (bCentDep==0) {
         cout << "vn : [ ";
@@ -83,12 +89,14 @@ int main(int argc, char *argv[]) {
     };
 
     double psi[5] = {TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi()};
+    //double psi[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
     TRandom3 *rand = new TRandom3(seed);
     TF1 *fPhiDist = new TF1("fPhiDist", AnisotropicPhiDist, -TMath::Pi(), TMath::Pi(), 11);
 
-    //TH1D *hPhi0 = new TH1D("hPhi0", "hPhi0", 100, -TMath::Pi(), TMath::Pi());
-    //TH1D *hPhi = new TH1D("hPhi", "hPhi", 100, -TMath::Pi(), TMath::Pi());
-    TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 200, -TMath::Pi()/2.0, TMath::Pi()/2.0);
+    // For testing purposes
+    TH1D *hPhi = new TH1D("hPhi", "hPhi", 50, -TMath::Pi(), TMath::Pi());
+    TH1D *hV2 = new TH1D("hV2", "hV2", 100, -0.2, 0.4);
+    TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 321, -TMath::Pi()/2.0, TMath::Pi()/2.0);
 
     // NTuple to save events
     TNtuple *ntuple;
@@ -113,7 +121,7 @@ int main(int argc, char *argv[]) {
             psi[j] = rand->Uniform(-TMath::Pi(), TMath::Pi());
         }
 
-        //pythia.event.list();
+        //pythia.event.list(false, true);
 
         double b = pythia.info.hiinfo->b();
 
@@ -131,23 +139,23 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        double v2 = 0.0;
+        int mult = 0;
         for (int iPart = 0; iPart < pythia.event.size(); iPart++) {
 
-            if (pythia.event[iPart].isFinal()) {
+            if (pythia.event[iPart].isFinal() && (pythia.event[iPart].name()!="NucRem")) {
 
                 charge = pythia.event[iPart].charge();
                 if (charge==0) continue;
 
-                // Change particle angle according to flow
-                moms = pythia.event[iPart].motherList();
-
-                double phi0 = pythia.event[iPart].phi();
-                double phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
-
-                if (moms.size()!=0 && pythia.event[iPart].mother2()==0) { // Check if there are mothers and mother is decaying particle
-                    phi0 = pythia.event.at(moms[0]).phi();
-                    phi = GetAnisotropicPhi(phi0, phi0, 0.001, vn, psi, fPhiDist);
+                int partIndex = iPart;
+                while (partIndex!=0) {
+                    if (!pythia.event.at(pythia.event.at(partIndex).mother1()).isHadron()) break; // Check that the mother is hadron
+                    partIndex = pythia.event.at(partIndex).mother1();
                 }
+
+                double phi0 = pythia.event.at(partIndex).phi();
+                double phi = GetAnisotropicPhi(phi0, phi0, 0.0001, vn, psi, fPhiDist);
 
                 double phiDiff = phi - phi0;
                 pythia.event[iPart].rot(0, phiDiff);
@@ -170,12 +178,14 @@ int main(int argc, char *argv[]) {
                     ntuple->Fill(iEvent, pid, px, py, pz, x, y, z, isHadron, charge);
                 }
 
-                //hPhi0->Fill(phi0);
-                //hPhi->Fill(phi);
+                hPhi->Fill(pythia.event[iPart].phi());
                 hPhiDiff->Fill(phiDiff);
-
+                v2 += TMath::Cos(2.0 * (pythia.event[iPart].phi() - psi[1]));
+                mult++;
             }
         }
+
+        hV2->Fill(v2/mult);
 
         cout << "\nEvent " << iEvent + 1
              << " done, n=" << pythia.event.size() << endl;
@@ -185,12 +195,11 @@ int main(int argc, char *argv[]) {
             cout << vn[i] << " ";
         }
         cout << "]\n";
-
     }
 
     ntuple->Write("", TObject::kOverwrite);
-    //hPhi0->Write("hPhi0");
-    //hPhi->Write("hPhi");
+    hPhi->Write("hPhi");
+    hV2->Write("hV2");
     hPhiDiff->Write("hPhiDiff");
     fOut->Close();
 
@@ -204,7 +213,7 @@ int main(int argc, char *argv[]) {
 //______________________________________________________________________________
 
 double GetPhi0(double phi, double *vn, double *psi) {
-    return phi - 2.0*vn[0]*TMath::Sin(phi-psi[0]) + vn[1]*TMath::Sin(2.0*(phi-psi[1])) + (2.0/3.0)*vn[2]*TMath::Sin(3.0*(phi-psi[2])) + (1.0/2.0)*vn[3]*TMath::Sin(4.0*(phi-psi[3])) + (2.0/5.0)*vn[4]*TMath::Sin(5.0*(phi-psi[4]));
+    return phi + 2.0*vn[0]*TMath::Sin(phi-psi[0]) + vn[1]*TMath::Sin(2.0*(phi-psi[1])) + (2.0/3.0)*vn[2]*TMath::Sin(3.0*(phi-psi[2])) + (1.0/2.0)*vn[3]*TMath::Sin(4.0*(phi-psi[3])) + (2.0/5.0)*vn[4]*TMath::Sin(5.0*(phi-psi[4]));
 }
 
 double AnisotropicPhiDist(double *x, double *p) {
