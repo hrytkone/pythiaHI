@@ -51,6 +51,6 @@ do
     outputdir=run_${1}_job$i
     mkdir $outputdir
     mkdir ${outputdir}/logs
-    sbatch -o ${outputdir}/logs/log$i -e ${outputdir}/logs/errout$i -J pHI -n 1 run $i $nevents $outputdir $bmin $bmax
+    sbatch -o ${outputdir}/logs/log -e ${outputdir}/logs/errout -J pHI -n 1 run $i $nevents $outputdir $bmin $bmax
     sleep 1
 done

@@ -10,6 +10,6 @@ seed=$((seed+jobid))
 
 impactParam=("3.50" "4.94" "6.98" "8.55" "9.88" "11.04")
 
-./pythiaHI ${2} "${3}/output_${1}_n${2}.root" $seed 1 1 impactParam[${4}] impactParam[${5}]
+./pythiaHI ${2} "${3}/output_${1}_n${2}.root" $seed 1 1 ${impactParam[${4}]} ${impactParam[${5}]}
 time=$(date)
 echo "End time : $time"
