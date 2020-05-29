@@ -63,12 +63,9 @@ int main(int argc, char *argv[]) {
 
     pythia.init();
 
-    std::vector<int> moms;
-
     // Flow related stuff
 
-    //double vn[NCOEF] = {0., 0.15, 0.08, 0.03, 0.01};
-    double vn[NCOEF] = {0., 0.1, 0.0, 0.0, 0.0};
+    double vn[NCOEF] = {0., 0.15, 0.08, 0.03, 0.01};
 
     if (bCentDep==0) {
         cout << "vn : [ ";
@@ -89,13 +86,11 @@ int main(int argc, char *argv[]) {
     };
 
     double psi[5] = {TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi(), TMath::Pi()};
-    //double psi[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
     TRandom3 *rand = new TRandom3(seed);
     TF1 *fPhiDist = new TF1("fPhiDist", AnisotropicPhiDist, -TMath::Pi(), TMath::Pi(), 11);
 
     // For testing purposes
     TH1D *hPhi = new TH1D("hPhi", "hPhi", 50, -TMath::Pi(), TMath::Pi());
-    TH1D *hV2 = new TH1D("hV2", "hV2", 100, -0.2, 0.4);
     TH1D *hPhiDiff = new TH1D("hPhiDiff", "hPhiDiff", 321, -TMath::Pi()/2.0, TMath::Pi()/2.0);
 
     // NTuple to save events
@@ -125,10 +120,10 @@ int main(int argc, char *argv[]) {
 
         double b = pythia.info.hiinfo->b();
 
-	    if (b<bMin || b>bMax) {
+	if (b<bMin || b>bMax) {
             iEvent--;
             continue;
-	    }
+	}
 
         int ibin = 0;
         if (bCentDep) {
@@ -139,8 +134,6 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        double v2 = 0.0;
-        int mult = 0;
         for (int iPart = 0; iPart < pythia.event.size(); iPart++) {
 
             if (pythia.event[iPart].isFinal() && (pythia.event[iPart].name()!="NucRem")) {
@@ -148,10 +141,14 @@ int main(int argc, char *argv[]) {
                 charge = pythia.event[iPart].charge();
                 if (charge==0) continue;
 
+		// Here find the particle from which the angle correction is calculated
                 int partIndex = iPart;
-                while (partIndex!=0) {
-                    if (!pythia.event.at(pythia.event.at(partIndex).mother1()).isHadron()) break; // Check that the mother is hadron
-                    partIndex = pythia.event.at(partIndex).mother1();
+                while (1) {
+                    int motherIndex = pythia.event[partIndex].mother1();
+                    bool isLongLived = pythia.event[motherIndex].tau0()>10.0 ? 1 : 0;
+                    bool isHadron = pythia.event[motherIndex].isHadron();
+                    if (!isHadron || !isLongLived) break; // Check that the mother is hadron and long lived (basically primary)
+                    partIndex = pythia.event[partIndex].mother1();
                 }
 
                 double phi0 = pythia.event.at(partIndex).phi();
@@ -180,12 +177,8 @@ int main(int argc, char *argv[]) {
 
                 hPhi->Fill(pythia.event[iPart].phi());
                 hPhiDiff->Fill(phiDiff);
-                v2 += TMath::Cos(2.0 * (pythia.event[iPart].phi() - psi[1]));
-                mult++;
             }
         }
-
-        hV2->Fill(v2/mult);
 
         cout << "\nEvent " << iEvent + 1
              << " done, n=" << pythia.event.size() << endl;
@@ -199,7 +192,6 @@ int main(int argc, char *argv[]) {
 
     ntuple->Write("", TObject::kOverwrite);
     hPhi->Write("hPhi");
-    hV2->Write("hV2");
     hPhiDiff->Write("hPhiDiff");
     fOut->Close();
 
